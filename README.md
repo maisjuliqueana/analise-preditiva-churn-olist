@@ -1,12 +1,12 @@
-# 🔮 Análise Preditiva de Churn — E-commerce (Dataset Olist)
+# ANÁLISE PREDITIVA DE CHURN — E-commerce (Dataset Olist)
 
 Modelo de machine learning que prevê a probabilidade de um cliente **não voltar a comprar** depois da primeira compra, usando o dataset público brasileiro da Olist, com features estilo RFM e avaliação de impacto financeiro do modelo — não só métricas técnicas.
 
-## 🎯 Objetivo
+## OBJETIVO
 
 Ir além de "treinar um modelo" — o projeto simula um problema real de negócio: **quais clientes de primeira compra têm maior risco de não retornar, e quanto isso representa em receita?** Isso conecta ciência de dados a uma decisão de marketing/CRM (para quem vale a pena mandar um cupom de segunda compra, por exemplo).
 
-## ⚠️ Sobre a definição de "churn" usada aqui
+## SOBRE A DEFINIÇÃO DE CHURN USADA AQUI
 
 O Olist é um **marketplace**, não uma assinatura — a maioria dos clientes compra uma única vez. Por isso, "churn" aqui foi definido de forma explícita e documentada (importante deixar isso claro em qualquer entrevista sobre o projeto):
 
@@ -14,14 +14,14 @@ O Olist é um **marketplace**, não uma assinatura — a maioria dos clientes co
 
 As features usadas para prever isso são calculadas **apenas com informações disponíveis no momento da primeira compra** (valor do pedido, forma de pagamento, prazo de entrega, categoria do produto, estado do cliente etc.) — nunca com dados do futuro. Isso evita **vazamento de dados (data leakage)**, um erro comum em projetos de churn.
 
-## 🗂️ Fonte de dados
+## FONTE DE DADOS
 
 **Brazilian E-Commerce Public Dataset by Olist**, disponível gratuitamente no Kaggle:
 https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
 
 O dataset não está incluído neste repositório (arquivos grandes, e a licença do Kaggle pede que cada pessoa baixe diretamente). Instruções de download em `data/README.md`.
 
-## 🏗️ Arquitetura / Pipeline
+## ARQUITETURA E PIPELINE
 
 ```
 CSVs brutos da Olist (data/raw/)
@@ -51,7 +51,7 @@ CSVs brutos da Olist (data/raw/)
 └─────────────────────────┘
 ```
 
-## 📁 Estrutura do repositório
+## ESTRUTURA DE REPOSITÓRIO
 
 ```
 analise-preditiva-churn-olist/
@@ -74,7 +74,7 @@ analise-preditiva-churn-olist/
 └── outputs/                         → modelos e relatórios gerados (gitignored)
 ```
 
-## 🚀 Como reproduzir
+## COMO REPRODUZIR
 
 ### 1. Baixar os dados
 Siga as instruções em `data/README.md` e coloque os CSVs em `data/raw/`.
@@ -101,7 +101,7 @@ python src/evaluate_business_impact.py   # gera o relatório de impacto financei
 streamlit run dashboard/app_streamlit.py
 ```
 
-## 📈 O que o modelo entrega
+## O QUE O MODELO ENTREGA? 
 
 | Métrica | Por que importa (não só acurácia) |
 |---|---|
@@ -110,14 +110,44 @@ streamlit run dashboard/app_streamlit.py
 | **Precision na classe "churn"** | De quem o modelo aponta como risco, quantos realmente eram risco (evita gastar verba de retenção à toa) |
 | **Receita em risco (R$)** | Soma do valor médio de segunda compra dos clientes classificados como alto risco |
 
-## 🧠 Como a IA foi usada neste projeto
+## RESULTADOS OBTIDOS
 
-- Definição e documentação da metodologia de churn (evitando vazamento de dados)
-- Geração e revisão do código de feature engineering e treino dos modelos
-- Estruturação do cálculo de impacto financeiro
-- Redação deste README e da documentação de decisões
+### Panorama geral
+- **66.692 clientes** elegíveis analisados (com primeira compra antiga o suficiente para observar a janela de 180 dias)
+- **Taxa de churn observada: 97,3%** — a esmagadora maioria dos clientes de primeira compra não retorna, o que é consistente com o comportamento típico de um marketplace (compra pontual, não recorrente)
 
-## 🔜 Próximos passos (evolução do projeto)
+### Performance dos modelos
+
+| Modelo | AUC-ROC | Precision (churn) | Recall (churn) |
+|---|---|---|---|
+| Regressão Logística | 0,594 | 0,978 | 0,611 |
+| **XGBoost** | **0,596** | 0,977 | **0,697** |
+
+O XGBoost superou a Regressão Logística principalmente em **recall** (69,7% vs. 61,1%) — ou seja, identifica uma fatia maior dos clientes que realmente vão dar churn, o que é o que mais importa para uma campanha de retenção (melhor errar prevendo risco a mais do que deixar passar um cliente que ia embora).
+
+O AUC-ROC relativamente baixo (~0,60) indica que as features disponíveis na primeira compra (valor, prazo de entrega, categoria, forma de pagamento) têm **poder preditivo moderado** — um resultado honesto, e esperado dado o desbalanceamento extremo da classe. Isso abre espaço real para evolução (ver seção "Próximos passos").
+
+### Impacto financeiro estimado
+
+| Faixa de risco | Clientes | Ticket médio | Receita total em risco | Recuperável com campanha (15%) |
+|---|---|---|---|---|
+| Alto risco | 1.039 | R$ 277,85 | R$ 288.688,82 | R$ 43.303,32 |
+| Risco médio | 14.327 | R$ 128,87 | **R$ 1.846.383,40** | **R$ 276.957,51** |
+| Baixo risco | 1.307 | R$ 129,60 | R$ 168.613,65 | R$ 25.292,05 |
+
+**Insight de negócio:** embora os clientes de "alto risco" tenham o maior ticket médio individual, é a faixa de **"risco médio" que concentra a maior receita total exposta** — simplesmente por ter um volume muito maior de clientes (14.327 vs. 1.039). Isso sugere que uma campanha de retenção bem desenhada pode gerar mais retorno se não focar só nos poucos clientes de risco extremo, mas também alcançar esse grupo intermediário, bem maior.
+
+### Limitação assumida
+O AUC modesto reforça um ponto já documentado em `docs/decisoes_arquitetura.md`: com dados exclusivos da primeira compra, o modelo tem um teto de performance. Uma evolução natural seria incorporar dados de comportamento de navegação (se disponíveis) ou testar janelas de churn diferentes (90 ou 365 dias).
+
+## COMO A ISA FOI USADA AQUI
+
+- Ajuste na documentação da metodologia de churn (evitando vazamento de dados)
+- Revisão do código de feature engineering e treino dos modelos
+- Revisão na estruturação do cálculo de impacto financeiro
+- Ajuste do README e da documentação de decisões
+
+## PRÓXIMOS PASSOS
 
 - Testar outras janelas de churn (90 dias, 365 dias) e comparar
 - Adicionar SHAP values para explicar as previsões individualmente
@@ -125,4 +155,7 @@ streamlit run dashboard/app_streamlit.py
 - Publicar o dashboard no Streamlit Cloud (gratuito) para link direto no portfólio
 
 ---
-📌 Projeto criado como parte de um portfólio de Engenharia de Dados / Ciência de Dados / BI.
+Projeto criado como parte de um portfólio de Engenharia de Dados / Ciência de Dados / BI.
+
+
+by Juliana Araújo
