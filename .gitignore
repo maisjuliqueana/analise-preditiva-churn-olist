@@ -1,0 +1,22 @@
+# Dados brutos (baixados do Kaggle, não versionar - ver data/README.md)
+data/raw/*.csv
+
+# Outputs gerados (modelos, datasets processados, relatórios)
+outputs/*.csv
+outputs/*.pkl
+outputs/*.joblib
+outputs/*.png
+outputs/*.json
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Sistema
+.DS_Store
+Thumbs.db
